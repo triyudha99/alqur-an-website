@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Aplikasi Al-Qur'an</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Edu+SA+Hand:wght@400..700&family=Quicksand:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Quicksand', 'Segoe UI', Arial, sans-serif;
+      padding: 1rem;
+      background: linear-gradient(135deg, #e0eafc 0%, #cfdef3 100%);
+      min-height: 100vh;
+    }
+    h1 {
+      color: #2d5c88;
+      letter-spacing: 1px;
+      text-align: center;
+      margin-bottom: 1.5rem;
+      text-shadow: 0 2px 8px #b3c6e0;
+    }
+    h2 {
+      color: #3a3a3a;
+      margin-bottom: 0.5rem;
+    }
+    label {
+      color: #2d5c88;
+      font-weight: 600;
+      font-size: 1.05rem;
+      margin-right: 0.3rem;
+    }
+    select, button, input[type="number"] {
+      padding: 0.5rem 1rem;
+      margin-top: 1rem;
+      font-size: 1rem;
+      border-radius: 6px;
+      border: 1px solid #b3c6e0;
+      background: #f7fbff;
+      color: #2d5c88;
+      transition: border 0.2s, box-shadow 0.2s;
+      box-shadow: 0 1px 4px rgba(45,92,136,0.07);
+      font-family: 'Quicksand', 'Segoe UI', Arial, sans-serif;
+      box-sizing: border-box;
+    }
+    input[type="number"] {
+      width: 90px;
+      margin-right: 0.5rem;
+    }
+    select:focus, button:focus {
+      outline: none;
+      border: 1.5px solid #2d5c88;
+      box-shadow: 0 0 0 2px #b3c6e0;
+    }
+    .surat-detail, .ayat-list {
+      margin-top: 1.5rem;
+      padding: 1.2rem 1.5rem;
+      background: rgba(255,255,255,0.95);
+      border-radius: 12px;
+      box-shadow: 0 4px 16px rgba(45,92,136,0.08);
+      font-family: 'Quicksand', 'Segoe UI', Arial, sans-serif;
+    }
+    .ayat {
+      border-bottom: 1px solid #e3eaf2;
+      padding: 0.8rem 0;
+      margin-bottom: 0.5rem;
+      transition: background 0.2s;
+      font-family: 'Quicksand', 'Segoe UI', Arial, sans-serif;
+    }
+    .ayat:last-child {
+      border-bottom: none;
+    }
+    .ayat:hover {
+      background: #f0f6ff;
+    }
+    audio {
+      margin-top: 0.3rem;
+      width: 100%;
+      background: #e0eafc;
+      border-radius: 6px;
+    }
+    .ayat p {
+      margin: 0.2rem 0;
+    }
+    .ayat strong {
+      color: #2d5c88;
+    }
+    .ayat em {
+      color: #4b6fa5;
+      font-size: 1.05rem;
+    }
+    .ayat p.bahasa-indonesia {
+      font-family: 'Edu SA Hand', cursive;
+      font-size: 1.08rem;
+      color: #2d5c88;
+      letter-spacing: 0.01em;
+    }
+    @media (max-width: 600px) {
+      .surat-detail, .ayat-list {
+        padding: 0.7rem 0.5rem;
+      }
+      h1 {
+        font-size: 1.3rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>📖 Aplikasi Al-Qur'an</h1>
+
+  <label for="suratSelect">Pilih Surat:</label>
+  <input type="number" id="suratInput" min="1" max="114" placeholder="No." style="width:60px; margin-right:0.5rem;">
+  <select id="suratSelect">
+    <option value="">-- Pilih Surat --</option>
+  </select>
+
+  <label for="ayatSelect" style="margin-left:1rem;">Pilih Ayat:</label>
+  <input type="number" id="ayatInput" min="1" placeholder="No." style="width:60px; margin-right:0.5rem;" disabled>
+  <select id="ayatSelect" disabled>
+    <option value="">-- Pilih Ayat --</option>
+  </select>
+
+  <div class="surat-detail" id="suratDetail"></div>
+  <div class="ayat-list" id="ayatList"></div>
+
+  <script>
+    const suratSelect = document.getElementById('suratSelect');
+    const suratInput = document.getElementById('suratInput');
+    const ayatSelect = document.getElementById('ayatSelect');
+    const ayatInput = document.getElementById('ayatInput');
+    const suratDetail = document.getElementById('suratDetail');
+    const ayatList = document.getElementById('ayatList');
+    let ayatData = [];
+
+    // Load daftar surat
+    async function loadDaftarSurat() {
+      const res = await fetch('https://equran.id/api/v2/surat');
+      const json = await res.json();
+      json.data.forEach(surat => {
+        const opt = document.createElement('option');
+        opt.value = surat.nomor;
+        opt.textContent = `${surat.nomor}. ${surat.namaLatin} (${surat.arti})`;
+        suratSelect.appendChild(opt);
+      });
+    }
+
+    // Tampilkan detail surat
+    async function loadDetailSurat(nomor) {
+      suratDetail.innerHTML = 'Memuat...';
+      ayatList.innerHTML = '';
+      ayatSelect.innerHTML = '<option value="">-- Pilih Ayat --</option>';
+      ayatSelect.disabled = true;
+      ayatInput.value = '';
+      ayatInput.disabled = false;
+
+      const detailRes = await fetch(`https://equran.id/api/v2/surat/${nomor}`);
+      const detail = await detailRes.json();
+      const s = detail.data;
+
+      suratDetail.innerHTML = `
+        <h2>${s.namaLatin} (${s.arti})</h2>
+        <p><strong>Jumlah Ayat:</strong> ${s.jumlahAyat}</p>
+        <p><strong>Tempat Turun:</strong> ${s.tempatTurun}</p>
+        <p>${s.deskripsi}</p>
+        <p><strong>Dengarkan full:</strong></p>
+        <audio controls src="${s.audioFull['05']}"></audio>
+      `;
+
+      ayatData = s.ayat;
+      s.ayat.forEach((ayat) => {
+        const opt = document.createElement('option');
+        opt.value = ayat.nomorAyat;
+        opt.textContent = `Ayat ${ayat.nomorAyat}`;
+        ayatSelect.appendChild(opt);
+      });
+      ayatSelect.disabled = false;
+      ayatInput.max = s.ayat.length;
+
+      renderAyatList();
+    }
+
+    function renderAyatList(selectedAyat = "") {
+      ayatList.innerHTML = '';
+      let filteredAyat = ayatData;
+      if (selectedAyat) {
+        filteredAyat = ayatData.filter(a => a.nomorAyat == selectedAyat);
+      }
+      filteredAyat.forEach((ayat) => {
+        const div = document.createElement('div');
+        div.className = 'ayat';
+        div.innerHTML = `
+          <p><strong>Ayat ${ayat.nomorAyat}</strong></p>
+          <p style="font-size: 1.3rem;">${ayat.teksArab}</p>
+          <p><em>${ayat.teksLatin}</em></p>
+          <p class="bahasa-indonesia">${ayat.teksIndonesia}</p>
+          <audio controls src="${ayat.audio['05']}"></audio>
+        `;
+        ayatList.appendChild(div);
+      });
+    }
+
+    // Sinkronisasi input nomor surat dengan dropdown
+    suratInput.addEventListener('input', () => {
+      const val = suratInput.value;
+      if (val && suratSelect.querySelector(`option[value="${val}"]`)) {
+        suratSelect.value = val;
+        suratSelect.dispatchEvent(new Event('change'));
+      }
+    });
+    suratSelect.addEventListener('change', () => {
+      const nomor = suratSelect.value;
+      suratInput.value = nomor;
+      if (nomor) {
+        loadDetailSurat(nomor);
+        ayatInput.disabled = false;
+      } else {
+        ayatSelect.innerHTML = '<option value="">-- Pilih Ayat --</option>';
+        ayatSelect.disabled = true;
+        ayatInput.value = '';
+        ayatInput.disabled = true;
+        ayatList.innerHTML = '';
+        suratDetail.innerHTML = '';
+      }
+    });
+    // Sinkronisasi input nomor ayat dengan dropdown
+    ayatInput.addEventListener('input', () => {
+      const val = ayatInput.value;
+      if (val && ayatSelect.querySelector(`option[value="${val}"]`)) {
+        ayatSelect.value = val;
+        ayatSelect.dispatchEvent(new Event('change'));
+      }
+    });
+    ayatSelect.addEventListener('change', () => {
+      ayatInput.value = ayatSelect.value;
+      renderAyatList(ayatSelect.value);
+    });
+
+    loadDaftarSurat();
+  </script>
+</body>
+</html>
